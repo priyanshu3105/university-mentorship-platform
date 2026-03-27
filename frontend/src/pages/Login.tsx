@@ -1,17 +1,18 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/contexts/AuthContext";
 
 export default function Login() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { refreshProfile } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const from = (location.state as any)?.from?.pathname || "/dashboard";
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/dashboard";
+
+  const field =
+    "block w-full px-3 py-2 border border-input rounded-md text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-shadow";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,35 +20,28 @@ export default function Login() {
       setError("Please enter your email and password.");
       return;
     }
+
+    setLoading(true);
     setError("");
-    setSubmitting(true);
 
-    try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: form.email,
-        password: form.password,
-      });
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: form.email,
+      password: form.password,
+    });
 
-      if (signInError) {
-        setError("Invalid email or password. Please try again.");
-        setSubmitting(false);
-        return;
-      }
+    setLoading(false);
 
-      await refreshProfile();
-      navigate(from, { replace: true });
-    } catch {
-      setError("Something went wrong. Please try again.");
-      setSubmitting(false);
+    if (authError) {
+      setError(authError.message);
+      return;
     }
+
+    navigate(from, { replace: true });
   };
 
-  const field =
-    "block w-full px-3 py-2 border border-input rounded-md text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-shadow";
-
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4 sm:px-6 py-8 sm:py-12">
-      <div className="w-full max-w-[28rem] border border-border rounded-lg p-6 sm:p-8">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
+      <div className="max-w-md w-full border border-border rounded-lg p-8">
         <div className="mb-6">
           <Link to="/" className="text-sm text-primary font-medium hover:underline">
             MentorConnect
@@ -87,10 +81,10 @@ export default function Login() {
 
           <button
             type="submit"
-            disabled={submitting}
-            className="w-full px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity mt-2 disabled:opacity-50"
+            disabled={loading}
+            className="w-full px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {submitting ? "Signing in..." : "Sign In"}
+            {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 

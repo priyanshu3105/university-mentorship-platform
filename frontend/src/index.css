@@ -72,18 +72,14 @@
   * {
     @apply border-border;
   }
-  html {
-    font-size: clamp(14px, 0.875rem + 0.25vw, 16px);
-    -webkit-text-size-adjust: 100%;
-    overflow-x: hidden;
-  }
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    overflow-x: hidden;
-    width: 100%;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply tracking-tight;
+  }
+  html {
+    scroll-behavior: smooth;
   }
 }
 
@@ -95,16 +91,35 @@
   .bg-status-busy { background-color: hsl(var(--status-busy)); }
   .bg-status-offline { background-color: hsl(var(--status-offline)); }
 
-  .page-container {
-    @apply w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12;
-    max-width: 1440px;
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
   }
-  .page-container-narrow {
-    @apply w-full mx-auto px-4 sm:px-6;
-    max-width: 672px;
+  .animate-fade-in-up {
+    animation: fade-in-up 0.6s ease-out both;
   }
-  .page-container-wide {
-    @apply w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12;
-    max-width: 1600px;
+
+  /* Stagger delays */
+  .delay-100 { animation-delay: 100ms; }
+  .delay-200 { animation-delay: 200ms; }
+  .delay-300 { animation-delay: 300ms; }
+  .delay-400 { animation-delay: 400ms; }
+  .delay-500 { animation-delay: 500ms; }
+  .delay-600 { animation-delay: 600ms; }
+  .delay-700 { animation-delay: 700ms; }
+
+  /* Glass effect */
+  .glass {
+    background: hsl(var(--background) / 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* Gradient text */
+  .text-gradient {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.6));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 }

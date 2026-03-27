@@ -14,7 +14,7 @@ export default function MentorDetail() {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <div className="page-container py-20 text-center">
+        <div className="max-w-7xl mx-auto px-4 py-20 text-center">
           <p className="text-muted-foreground text-sm">Mentor not found.</p>
           <Link to="/mentors" className="text-primary text-sm font-medium hover:underline mt-3 inline-block">
             Back to Mentors
@@ -30,7 +30,7 @@ export default function MentorDetail() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="page-container py-6 sm:py-8 lg:py-10">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Back */}
         <Link
           to="/mentors"
@@ -48,7 +48,7 @@ export default function MentorDetail() {
                 {mentor.avatarInitials}
               </div>
               <div>
-                <h1 className="text-lg sm:text-xl font-semibold text-foreground">{mentor.name}</h1>
+                <h1 className="text-xl font-semibold text-foreground">{mentor.name}</h1>
                 <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                   <StatusBadge status={mentor.availability} />
                   <StarRating rating={mentor.rating} count={mentor.reviewCount} />

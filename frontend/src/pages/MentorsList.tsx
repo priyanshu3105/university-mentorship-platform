@@ -46,17 +46,17 @@ export default function MentorsList() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="page-container py-6 sm:py-8 lg:py-10">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Find a Mentor</h1>
+        <div className="mb-8">
+          <h1 className="text-2xl font-semibold text-foreground">Find a Mentor</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {filtered.length} mentor{filtered.length !== 1 ? "s" : ""} available
           </p>
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row flex-wrap gap-3 mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row gap-3 mb-8">
           <div className="relative flex-1 max-w-sm">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <input
@@ -107,7 +107,7 @@ export default function MentorsList() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map((mentor) => (
               <MentorCard key={mentor.id} mentor={mentor} />
             ))}

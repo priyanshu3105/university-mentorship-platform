@@ -1,23 +1,43 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
-import { currentUser, mentors } from "@/data/mockData";
+import { useAuth } from "@/contexts/AuthContext";
+
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
 
 export default function Profile() {
-  const role = currentUser.role;
+  const { profile } = useAuth();
+
+  const role = profile?.role ?? "student";
   const isMentor = role === "mentor";
-  const mentorData = mentors.find((m) => m.email === currentUser.email);
 
   const [form, setForm] = useState({
-    fullName: currentUser.name,
-    email: currentUser.email,
-    bio: mentorData?.bio ?? "",
-    expertise: mentorData?.expertise.join(", ") ?? "",
-    availability: mentorData?.availability ?? "Available",
+    fullName: "",
+    email: "",
+    bio: "",
+    expertise: "",
+    availability: "Available",
     photoUrl: "",
-    course: "BSc Computer Science",
-    interests: "Machine Learning, Open Source, Cybersecurity",
+    course: "",
+    interests: "",
   });
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (profile) {
+      setForm((prev) => ({
+        ...prev,
+        fullName: profile.fullName || "",
+        email: profile.email || "",
+      }));
+    }
+  }, [profile]);
 
   const field =
     "block w-full px-3 py-2 border border-input rounded-md text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-shadow";
@@ -28,28 +48,34 @@ export default function Profile() {
     setTimeout(() => setSaved(false), 3000);
   };
 
+  const displayName = profile?.fullName || profile?.email || "User";
+  const initials = profile?.fullName ? getInitials(profile.fullName) : (profile?.email?.[0]?.toUpperCase() ?? "U");
+
   const roleBadge = isMentor
     ? "bg-primary/10 text-primary border-primary/20"
-    : "bg-secondary text-muted-foreground border-border";
+    : role === "admin"
+      ? "bg-destructive/10 text-destructive border-destructive/20"
+      : "bg-secondary text-muted-foreground border-border";
+
+  const roleLabel = role === "admin" ? "Admin" : isMentor ? "Mentor" : "Student";
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="page-container-narrow py-6 sm:py-8 lg:py-10">
-        {/* Header */}
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="mb-8 flex items-start gap-4">
           <div className="w-12 h-12 rounded-full bg-secondary border border-border flex items-center justify-center text-foreground font-semibold">
-            {currentUser.avatarInitials}
+            {initials}
           </div>
           <div>
-            <h1 className="text-lg sm:text-xl font-semibold text-foreground">{currentUser.name}</h1>
+            <h1 className="text-xl font-semibold text-foreground">{displayName}</h1>
             <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full border mt-1.5 ${roleBadge}`}>
-              {isMentor ? "Mentor" : "Student"}
+              {roleLabel}
             </span>
           </div>
         </div>
 
-        <div className="border border-border rounded-lg p-4 sm:p-6">
+        <div className="border border-border rounded-lg p-6">
           <form onSubmit={handleSave} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">Full Name</label>
@@ -72,13 +98,14 @@ export default function Profile() {
               <p className="mt-1 text-xs text-muted-foreground">Email cannot be changed.</p>
             </div>
 
-            {!isMentor && (
+            {!isMentor && role !== "admin" && (
               <>
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1.5">Course / Program</label>
                   <input
                     type="text"
                     className={field}
+                    placeholder="e.g. BSc Computer Science"
                     value={form.course}
                     onChange={(e) => setForm({ ...form, course: e.target.value })}
                   />

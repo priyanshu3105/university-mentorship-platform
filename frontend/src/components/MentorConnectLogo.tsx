@@ -1,0 +1,28 @@
+interface MentorConnectLogoProps {
+  size?: number;
+  className?: string;
+}
+
+export function MentorConnectLogo({ size = 40, className }: MentorConnectLogoProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 64 64"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <rect width="64" height="64" rx="14" fill="#1E1B4B" />
+      <path d="M28 50H36L34 28H30L28 50Z" fill="#A5B4FC" />
+      <rect x="29" y="22" width="6" height="6" rx="1" fill="#C4B5FD" />
+      <circle cx="32" cy="18" r="4" fill="white" opacity="0.95" />
+      <path d="M32 14V8" stroke="#C4B5FD" strokeWidth="2" strokeLinecap="round" />
+      <path d="M22 22L18 18" stroke="#A5B4FC" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
+      <path d="M42 22L46 18" stroke="#A5B4FC" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
+      <path d="M20 26H14" stroke="#A5B4FC" strokeWidth="2" strokeLinecap="round" opacity="0.5" />
+      <path d="M44 26H50" stroke="#A5B4FC" strokeWidth="2" strokeLinecap="round" opacity="0.5" />
+      <rect x="24" y="50" width="16" height="3" rx="1.5" fill="#A5B4FC" opacity="0.5" />
+    </svg>
+  );
+}

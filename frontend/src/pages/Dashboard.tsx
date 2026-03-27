@@ -1,19 +1,23 @@
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
-import { currentUser, bookings, timeSlots, mentors } from "@/data/mockData";
+import { useAuth } from "@/contexts/AuthContext";
+import { bookings, timeSlots, mentors } from "@/data/mockData";
 import { CalendarDays, MessageSquare, Clock, Star } from "lucide-react";
 
 const statusColor: Record<string, string> = {
-  Confirmed: "text-green-600 bg-green-50 border-green-200",
+  Confirmed: "text-green-600 bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800",
   Cancelled: "text-muted-foreground bg-secondary border-border",
-  Pending: "text-amber-600 bg-amber-50 border-amber-200",
+  Pending: "text-amber-600 bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-800",
 };
 
 export default function Dashboard() {
-  const role = currentUser.role;
+  const { profile } = useAuth();
+
+  const role = profile?.role ?? "student";
+  const firstName = profile?.fullName?.split(" ")[0] || profile?.email?.split("@")[0] || "there";
 
   const myBookings = bookings.filter(
-    (b) => (role === "student" ? b.studentId === currentUser.id : b.mentorId === currentUser.id)
+    (b) => (role === "student" ? b.studentId === profile?.id : b.mentorId === profile?.id)
   );
 
   const upcomingBookings = myBookings.filter(
@@ -21,21 +25,20 @@ export default function Dashboard() {
   );
 
   const mySlots = timeSlots.filter(
-    (s) => role === "mentor" && mentors.find((m) => m.email === currentUser.email)?.id === s.mentorId
+    (s) => role === "mentor" && mentors.find((m) => m.email === profile?.email)?.id === s.mentorId
   );
 
   const pendingSlots = mySlots.filter((s) => !s.booked);
 
-  const myMentorData = mentors.find((m) => m.email === currentUser.email);
+  const myMentorData = mentors.find((m) => m.email === profile?.email);
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="page-container py-6 sm:py-8 lg:py-10">
-        {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-xl sm:text-2xl font-semibold text-foreground">
-            Welcome back, {currentUser.name.split(" ")[0]}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="mb-8">
+          <h1 className="text-2xl font-semibold text-foreground">
+            Welcome back, {firstName}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Here's an overview of your activity.
@@ -44,7 +47,6 @@ export default function Dashboard() {
 
         {role === "student" && (
           <>
-            {/* Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
               <div className="border border-border rounded-lg p-5">
                 <div className="flex items-center gap-3">
@@ -64,13 +66,12 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Active Conversations</p>
-                    <p className="text-xl font-semibold text-foreground">3</p>
+                    <p className="text-xl font-semibold text-foreground">—</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* CTA */}
             <div className="mb-8">
               <Link
                 to="/mentors"
@@ -80,7 +81,6 @@ export default function Dashboard() {
               </Link>
             </div>
 
-            {/* Recent bookings */}
             <div>
               <h2 className="text-base font-semibold text-foreground mb-4">Recent Bookings</h2>
               {myBookings.length === 0 ? (
@@ -91,24 +91,24 @@ export default function Dashboard() {
                   </Link>
                 </div>
               ) : (
-                <div className="border border-border rounded-lg overflow-x-auto">
-                  <table className="w-full text-sm min-w-[480px]">
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border bg-secondary/40">
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Mentor</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Date</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Time</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Status</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Mentor</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Date</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Time</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       {myBookings.map((b) => (
                         <tr key={b.id} className="hover:bg-secondary/30 transition-colors">
-                          <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap">{b.mentorName}</td>
-                          <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{b.date}</td>
-                          <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{b.startTime}–{b.endTime}</td>
+                          <td className="px-4 py-3 font-medium text-foreground">{b.mentorName}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{b.date}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{b.startTime}–{b.endTime}</td>
                           <td className="px-4 py-3">
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full border whitespace-nowrap ${statusColor[b.status]}`}>
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${statusColor[b.status]}`}>
                               {b.status}
                             </span>
                           </td>
@@ -124,7 +124,6 @@ export default function Dashboard() {
 
         {role === "mentor" && (
           <>
-            {/* Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
               <div className="border border-border rounded-lg p-5">
                 <div className="flex items-center gap-3">
@@ -161,7 +160,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* CTA */}
             <div className="mb-8">
               <Link
                 to="/bookings"
@@ -171,7 +169,6 @@ export default function Dashboard() {
               </Link>
             </div>
 
-            {/* Upcoming sessions */}
             <div>
               <h2 className="text-base font-semibold text-foreground mb-4">Upcoming Sessions</h2>
               {upcomingBookings.length === 0 ? (
@@ -179,24 +176,24 @@ export default function Dashboard() {
                   <p className="text-sm text-muted-foreground">No upcoming sessions.</p>
                 </div>
               ) : (
-                <div className="border border-border rounded-lg overflow-x-auto">
-                  <table className="w-full text-sm min-w-[480px]">
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border bg-secondary/40">
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Student</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Date</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Time</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Status</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Student</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Date</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Time</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       {upcomingBookings.map((b) => (
                         <tr key={b.id} className="hover:bg-secondary/30 transition-colors">
-                          <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap">{b.studentName}</td>
-                          <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{b.date}</td>
-                          <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{b.startTime}–{b.endTime}</td>
+                          <td className="px-4 py-3 font-medium text-foreground">{b.studentName}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{b.date}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{b.startTime}–{b.endTime}</td>
                           <td className="px-4 py-3">
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full border whitespace-nowrap ${statusColor[b.status]}`}>
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${statusColor[b.status]}`}>
                               {b.status}
                             </span>
                           </td>

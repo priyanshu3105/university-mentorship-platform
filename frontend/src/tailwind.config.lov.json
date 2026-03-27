@@ -351,7 +351,16 @@
       "pulse": "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
       "bounce": "bounce 1s infinite",
       "accordion-down": "accordion-down 0.2s ease-out",
-      "accordion-up": "accordion-up 0.2s ease-out"
+      "accordion-up": "accordion-up 0.2s ease-out",
+      "float": "float 4s ease-in-out infinite",
+      "float-slow": "float-slow 6s ease-in-out infinite",
+      "pulse-glow": "pulse-glow 3s ease-in-out infinite",
+      "slide-up": "slide-up 0.6s ease-out both",
+      "slide-in-left": "slide-in-left 0.6s ease-out both",
+      "slide-in-right": "slide-in-right 0.6s ease-out both",
+      "scale-up": "scale-up 0.5s ease-out both",
+      "spin-slow": "spin-slow 20s linear infinite",
+      "count-up": "count-up 0.4s ease-out both"
     },
     "aria": {
       "busy": "busy=\"true\"",
@@ -4008,6 +4017,90 @@
         },
         "to": {
           "height": "0"
+        }
+      },
+      "float": {
+        "0%, 100%": {
+          "transform": "translateY(0px)"
+        },
+        "50%": {
+          "transform": "translateY(-12px)"
+        }
+      },
+      "float-slow": {
+        "0%, 100%": {
+          "transform": "translateY(0px) rotate(0deg)"
+        },
+        "50%": {
+          "transform": "translateY(-8px) rotate(3deg)"
+        }
+      },
+      "pulse-glow": {
+        "0%, 100%": {
+          "opacity": "0.4",
+          "transform": "scale(1)"
+        },
+        "50%": {
+          "opacity": "0.8",
+          "transform": "scale(1.05)"
+        }
+      },
+      "slide-up": {
+        "from": {
+          "opacity": "0",
+          "transform": "translateY(30px)"
+        },
+        "to": {
+          "opacity": "1",
+          "transform": "translateY(0)"
+        }
+      },
+      "slide-in-left": {
+        "from": {
+          "opacity": "0",
+          "transform": "translateX(-30px)"
+        },
+        "to": {
+          "opacity": "1",
+          "transform": "translateX(0)"
+        }
+      },
+      "slide-in-right": {
+        "from": {
+          "opacity": "0",
+          "transform": "translateX(30px)"
+        },
+        "to": {
+          "opacity": "1",
+          "transform": "translateX(0)"
+        }
+      },
+      "scale-up": {
+        "from": {
+          "opacity": "0",
+          "transform": "scale(0.9)"
+        },
+        "to": {
+          "opacity": "1",
+          "transform": "scale(1)"
+        }
+      },
+      "spin-slow": {
+        "from": {
+          "transform": "rotate(0deg)"
+        },
+        "to": {
+          "transform": "rotate(360deg)"
+        }
+      },
+      "count-up": {
+        "from": {
+          "opacity": "0",
+          "transform": "translateY(10px)"
+        },
+        "to": {
+          "opacity": "1",
+          "transform": "translateY(0)"
         }
       }
     },

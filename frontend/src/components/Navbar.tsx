@@ -2,6 +2,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Users, CalendarDays, MessageSquare, ShieldCheck, ChevronDown, LogOut, User } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import ThemeToggle from "@/components/ThemeToggle";
+import { MentorConnectLogo } from "@/components/MentorConnectLogo";
 
 const navLinks = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -10,36 +12,41 @@ const navLinks = [
   { to: "/chat", label: "Chat", icon: MessageSquare },
 ];
 
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
+  const displayName = profile?.fullName || profile?.email || "User";
+  const initials = profile?.fullName ? getInitials(profile.fullName) : (profile?.email?.[0]?.toUpperCase() ?? "U");
+  const role = profile?.role;
+
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(path + "/");
-
-  const initials = profile?.fullName
-    ? profile.fullName
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : "?";
 
   const handleLogout = async () => {
     setDropdownOpen(false);
     await signOut();
-    navigate("/login");
+    navigate("/", { replace: true });
   };
 
   return (
     <nav className="border-b border-border bg-background sticky top-0 z-50">
-      <div className="page-container">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
-          <Link to="/" className="text-foreground font-semibold text-sm tracking-tight">
-            MentorConnect
+          <Link to="/" className="flex items-center gap-2">
+            <MentorConnectLogo size={28} />
+            <span className="text-foreground font-semibold text-sm tracking-tight">MentorConnect</span>
           </Link>
 
           <div className="hidden md:flex items-center gap-1">
@@ -56,7 +63,7 @@ export default function Navbar() {
                 {label}
               </Link>
             ))}
-            {profile?.role === "admin" && (
+            {role === "admin" && (
               <Link
                 to="/admin"
                 className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
@@ -70,41 +77,47 @@ export default function Navbar() {
             )}
           </div>
 
-          <div className="relative">
-            <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-            >
-              <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-medium">
-                {initials}
-              </div>
-              <span className="hidden sm:block">{profile?.fullName || "User"}</span>
-              <ChevronDown size={14} />
-            </button>
-
-            {dropdownOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setDropdownOpen(false)} />
-                <div className="absolute right-0 top-full mt-1 w-44 bg-background border border-border rounded-lg shadow-sm z-50 py-1">
-                  <Link
-                    to="/profile"
-                    onClick={() => setDropdownOpen(false)}
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary transition-colors"
-                  >
-                    <User size={14} className="text-muted-foreground" />
-                    Profile
-                  </Link>
-                  <div className="border-t border-border my-1" />
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary transition-colors w-full text-left"
-                  >
-                    <LogOut size={14} className="text-muted-foreground" />
-                    Logout
-                  </button>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <div className="relative">
+              <button
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              >
+                <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-medium">
+                  {initials}
                 </div>
-              </>
-            )}
+                <span className="hidden sm:block">{displayName}</span>
+                <ChevronDown size={14} />
+              </button>
+
+              {dropdownOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setDropdownOpen(false)}
+                  />
+                  <div className="absolute right-0 top-full mt-1 w-44 bg-background border border-border rounded-lg shadow-sm z-50 py-1">
+                    <Link
+                      to="/profile"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary transition-colors"
+                    >
+                      <User size={14} className="text-muted-foreground" />
+                      Profile
+                    </Link>
+                    <div className="border-t border-border my-1" />
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary transition-colors w-full text-left"
+                    >
+                      <LogOut size={14} className="text-muted-foreground" />
+                      Logout
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -123,7 +136,7 @@ export default function Navbar() {
               {label}
             </Link>
           ))}
-          {profile?.role === "admin" && (
+          {role === "admin" && (
             <Link
               to="/admin"
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs whitespace-nowrap transition-colors ${

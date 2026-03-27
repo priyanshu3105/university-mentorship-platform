@@ -2,19 +2,15 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { apiPost } from "@/lib/api";
-import { useAuth } from "@/contexts/AuthContext";
 
 interface FieldError {
   fullName?: string;
   email?: string;
   password?: string;
   confirmPassword?: string;
-  general?: string;
 }
 
 export default function Register() {
-  const navigate = useNavigate();
-  const { refreshProfile } = useAuth();
   const [form, setForm] = useState({
     fullName: "",
     email: "",
@@ -22,7 +18,10 @@ export default function Register() {
     confirmPassword: "",
   });
   const [errors, setErrors] = useState<FieldError>({});
-  const [submitting, setSubmitting] = useState(false);
+  const [serverError, setServerError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [confirmEmail, setConfirmEmail] = useState(false);
+  const navigate = useNavigate();
 
   const validate = (): FieldError => {
     const e: FieldError = {};
@@ -43,51 +42,64 @@ export default function Register() {
       setErrors(errs);
       return;
     }
+
     setErrors({});
-    setSubmitting(true);
+    setServerError("");
+    setLoading(true);
 
-    try {
-      const { error: signUpError } = await supabase.auth.signUp({
-        email: form.email,
-        password: form.password,
-      });
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email: form.email,
+      password: form.password,
+    });
 
-      if (signUpError) {
-        setErrors({ general: signUpError.message });
-        setSubmitting(false);
-        return;
+    if (signUpError) {
+      setLoading(false);
+      setServerError(signUpError.message);
+      return;
+    }
+
+    if (data.session) {
+      try {
+        await apiPost("/auth/complete-registration", {
+          fullName: form.fullName.trim(),
+        });
+      } catch (err) {
+        console.error("Profile creation failed:", err);
       }
-
-      // Sign in immediately to get a session (for auto-confirmed users)
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: form.email,
-        password: form.password,
-      });
-
-      if (signInError) {
-        setErrors({ general: "Account created. Please check your email to verify, then log in." });
-        setSubmitting(false);
-        return;
-      }
-
-      await apiPost("/auth/complete-registration", {
-        fullName: form.fullName,
-      });
-
-      await refreshProfile();
-      navigate("/dashboard");
-    } catch (err: any) {
-      setErrors({ general: err.message || "Registration failed. Please try again." });
-      setSubmitting(false);
+      setLoading(false);
+      navigate("/dashboard", { replace: true });
+    } else {
+      setLoading(false);
+      setConfirmEmail(true);
     }
   };
 
   const field =
     "block w-full px-3 py-2 border border-input rounded-md text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-shadow";
 
+  if (confirmEmail) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <div className="max-w-md w-full border border-border rounded-lg p-8 text-center">
+          <h2 className="text-lg font-semibold text-foreground mb-2">Check your email</h2>
+          <p className="text-sm text-muted-foreground mb-6">
+            We've sent a confirmation link to <strong className="text-foreground">{form.email}</strong>.
+            Please verify your email, then sign in.
+          </p>
+          <Link
+            to="/login"
+            className="px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+          >
+            Go to Login
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4 sm:px-6 py-8 sm:py-12">
-      <div className="w-full max-w-[28rem] border border-border rounded-lg p-6 sm:p-8">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
+      <div className="max-w-md w-full border border-border rounded-lg p-8">
         <div className="mb-6">
           <Link to="/" className="text-sm text-primary font-medium hover:underline">
             MentorConnect
@@ -149,18 +161,18 @@ export default function Register() {
             )}
           </div>
 
-          {errors.general && (
+          {serverError && (
             <div className="rounded-md bg-destructive/5 border border-destructive/20 px-3 py-2">
-              <p className="text-xs text-destructive">{errors.general}</p>
+              <p className="text-xs text-destructive">{serverError}</p>
             </div>
           )}
 
           <button
             type="submit"
-            disabled={submitting}
-            className="w-full px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity mt-2 disabled:opacity-50"
+            disabled={loading}
+            className="w-full px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {submitting ? "Creating account..." : "Create Account"}
+            {loading ? "Creating account..." : "Create Account"}
           </button>
         </form>
 

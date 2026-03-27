@@ -13,6 +13,10 @@ export default function Chat() {
   const activeConv = conversations.find((c) => c.id === conversationId);
   const threadMessages = msgs.filter((m) => m.conversationId === conversationId);
 
+  const isMobile = window.innerWidth < 768;
+  const showList = !conversationId || !isMobile;
+  const showThread = !!conversationId;
+
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMsg.trim() || !conversationId) return;
@@ -30,7 +34,7 @@ export default function Chat() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
-      <div className="flex-1 flex page-container-wide py-4 sm:py-6 gap-3 sm:gap-4">
+      <div className="flex-1 flex max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 gap-4">
         {/* Left panel: Conversation list */}
         <div
           className={`${
@@ -88,7 +92,7 @@ export default function Chat() {
                   const isSelf = msg.senderId === currentUser.id;
                   return (
                     <div key={msg.id} className={`flex ${isSelf ? "justify-end" : "justify-start"}`}>
-                      <div className="max-w-[75%] sm:max-w-xs lg:max-w-sm">
+                      <div className="max-w-xs lg:max-w-sm">
                         <div
                           className={`px-3 py-2 rounded-lg text-sm leading-relaxed ${
                             isSelf
