@@ -41,6 +41,3 @@ Author
 Priyanshu Chatterjee — Maynooth University
 
 
-# VITE_SUPABASE_URL=https://vejhetjmrphcolrhmzbq.supabase.co
-# VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlamhldGptcnBoY29scmhtemJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyODE3NzEsImV4cCI6MjA4Nzg1Nzc3MX0._IzmwDFnoq-4zlrsNzvllfrzVL1kJ8S-sQsaI-LZp1c
-
