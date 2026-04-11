@@ -1,12 +1,23 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   BookOpen, Calendar, MessageSquare, Users, Star, Building2,
   ShieldCheck, Sparkles, ClipboardCheck, BarChart3, UserPlus,
   Search, CalendarCheck, ArrowRight, Quote, Zap,
+  ChevronDown, LogOut, User,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
 import { MentorConnectLogo } from "@/components/MentorConnectLogo";
+import { useAuth } from "@/contexts/AuthContext";
+
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
 
 /* ── Scroll-reveal hook with stagger support ── */
 function useReveal(delay = 0) {
@@ -103,6 +114,22 @@ const footerCols = [
 
 /* ── Component ── */
 export default function Landing() {
+  const navigate = useNavigate();
+  const { session, user, profile, loading, signOut } = useAuth();
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+
+  const userEmail = user?.email ?? null;
+  const displayName = profile?.fullName || profile?.email || userEmail || "User";
+  const initials = profile?.fullName
+    ? getInitials(profile.fullName)
+    : (profile?.email?.[0]?.toUpperCase() ?? userEmail?.[0]?.toUpperCase() ?? "U");
+
+  const handleLogout = async () => {
+    setProfileMenuOpen(false);
+    await signOut();
+    navigate("/", { replace: true });
+  };
+
   const s1 = useReveal();
   const s2 = useReveal();
   const s3 = useReveal();
@@ -120,12 +147,84 @@ export default function Landing() {
           </Link>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Link to="/login" className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-200">
-              Log in
-            </Link>
-            <Link to="/register" className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-xs sm:text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 hover:shadow-lg hover:shadow-primary/25 transition-all duration-300">
-              Get Started
-            </Link>
+            {loading ? (
+              <div
+                className="h-8 w-8 rounded-full bg-muted animate-pulse shrink-0"
+                aria-hidden
+              />
+            ) : session ? (
+              <div className="relative flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setProfileMenuOpen((o) => !o)}
+                  className="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors"
+                  aria-expanded={profileMenuOpen}
+                  aria-haspopup="menu"
+                >
+                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-semibold shrink-0">
+                    {initials}
+                  </div>
+                  <span className="hidden sm:inline max-w-[140px] truncate">{displayName}</span>
+                  <ChevronDown size={14} className="hidden sm:block shrink-0 opacity-70" />
+                </button>
+                {profileMenuOpen ? (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setProfileMenuOpen(false)}
+                      aria-hidden
+                    />
+                    <div
+                      role="menu"
+                      className="absolute right-0 top-full mt-1 w-48 bg-background border border-border rounded-lg shadow-md z-50 py-1"
+                    >
+                      <Link
+                        role="menuitem"
+                        to="/dashboard"
+                        onClick={() => setProfileMenuOpen(false)}
+                        className="block px-3 py-2 text-sm text-foreground hover:bg-secondary transition-colors"
+                      >
+                        Dashboard
+                      </Link>
+                      <Link
+                        role="menuitem"
+                        to="/profile"
+                        onClick={() => setProfileMenuOpen(false)}
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary transition-colors"
+                      >
+                        <User size={14} className="text-muted-foreground" />
+                        Profile
+                      </Link>
+                      <div className="border-t border-border my-1" />
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => void handleLogout()}
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary transition-colors w-full text-left"
+                      >
+                        <LogOut size={14} className="text-muted-foreground" />
+                        Log out
+                      </button>
+                    </div>
+                  </>
+                ) : null}
+              </div>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-200"
+                >
+                  Log in
+                </Link>
+                <Link
+                  to="/register"
+                  className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-xs sm:text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 hover:shadow-lg hover:shadow-primary/25 transition-all duration-300"
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>

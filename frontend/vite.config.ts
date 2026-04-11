@@ -16,6 +16,12 @@ export default defineConfig(({ mode }) => ({
         target: "http://localhost:4000",
         changeOrigin: true,
       },
+      // Socket.IO must hit the Express server; same-origin io() from :8080 → backend :4000
+      "/socket.io": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+        ws: true,
+      },
     },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),

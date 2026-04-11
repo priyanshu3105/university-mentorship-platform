@@ -7,7 +7,9 @@ export async function getMe(req, res) {
 
     const { data, error } = await supabaseAdmin
       .from('user_profiles')
-      .select('id, full_name, role, mentor_profiles ( is_approved )')
+      .select(
+        'id, full_name, role, mentor_profiles!mentor_profiles_user_id_fkey ( is_approved )'
+      )
       .eq('id', id)
       .maybeSingle();
 

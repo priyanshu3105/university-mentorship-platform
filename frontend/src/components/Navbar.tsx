@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Users, CalendarDays, MessageSquare, ShieldCheck, ChevronDown, LogOut, User } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useChatSocket } from "@/contexts/ChatSocketContext";
 import ThemeToggle from "@/components/ThemeToggle";
 import { MentorConnectLogo } from "@/components/MentorConnectLogo";
 
@@ -24,11 +25,15 @@ function getInitials(name: string): string {
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { profile, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
+  const { chatUnreadCount } = useChatSocket();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  const displayName = profile?.fullName || profile?.email || "User";
-  const initials = profile?.fullName ? getInitials(profile.fullName) : (profile?.email?.[0]?.toUpperCase() ?? "U");
+  const userEmail = user?.email ?? null;
+  const displayName = profile?.fullName || profile?.email || userEmail || "User";
+  const initials = profile?.fullName
+    ? getInitials(profile.fullName)
+    : (profile?.email?.[0]?.toUpperCase() ?? userEmail?.[0]?.toUpperCase() ?? "U");
   const role = profile?.role;
 
   const isActive = (path: string) =>
@@ -54,13 +59,18 @@ export default function Navbar() {
               <Link
                 key={to}
                 to={to}
-                className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+                className={`px-3 py-1.5 rounded-md text-sm transition-colors inline-flex items-center gap-1.5 ${
                   isActive(to)
                     ? "bg-secondary text-foreground font-medium"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                 }`}
               >
                 {label}
+                {to === "/chat" && chatUnreadCount > 0 ? (
+                  <span className="min-w-[1.125rem] h-4 px-1 rounded-full bg-primary text-[10px] leading-none text-primary-foreground flex items-center justify-center font-medium">
+                    {chatUnreadCount > 9 ? "9+" : chatUnreadCount}
+                  </span>
+                ) : null}
               </Link>
             ))}
             {role === "admin" && (
@@ -134,6 +144,11 @@ export default function Navbar() {
             >
               <Icon size={13} />
               {label}
+              {to === "/chat" && chatUnreadCount > 0 ? (
+                <span className="min-w-[1.125rem] h-4 px-1 rounded-full bg-primary text-[10px] text-primary-foreground flex items-center justify-center font-medium">
+                  {chatUnreadCount > 9 ? "9+" : chatUnreadCount}
+                </span>
+              ) : null}
             </Link>
           ))}
           {role === "admin" && (

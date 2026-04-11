@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
-import { apiGet } from "@/lib/api";
+import { apiGet, apiPost } from "@/lib/api";
 import type { Session, User as SupabaseUser } from "@supabase/supabase-js";
 
 export type Role = "student" | "mentor" | "admin";
@@ -56,6 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  /** False until the first `getSession()` finishes — avoids treating the user as logged out while storage is still loading. */
+  const [authInitialized, setAuthInitialized] = useState(false);
 
   const refreshProfile = async () => {
     const p = await fetchProfile();
@@ -63,30 +65,81 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
+    let mounted = true;
+
+    supabase.auth
+      .getSession()
+      .then(({ data: { session: s } }) => {
+        if (!mounted) return;
+        setSession(s);
+        setUser(s?.user ?? null);
+      })
+      .finally(() => {
+        if (mounted) setAuthInitialized(true);
+      });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, s) => {
+      if (!mounted) return;
       setSession(s);
       setUser(s?.user ?? null);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
-    if (session) {
-      fetchProfile().then((p) => {
+    if (!authInitialized) return;
+
+    let cancelled = false;
+
+    const syncProfile = async () => {
+      if (!session) {
+        if (!cancelled) {
+          setProfile(null);
+          setLoading(false);
+        }
+        return;
+      }
+
+      let p = await fetchProfile();
+
+      // Email-verification flow may not return a session at sign-up time.
+      // On first verified login, complete registration using stored metadata if present.
+      if (p && !p.profileExists) {
+        const metadataFullName =
+          session.user?.user_metadata?.full_name ||
+          session.user?.user_metadata?.fullName ||
+          "";
+
+        if (typeof metadataFullName === "string" && metadataFullName.trim()) {
+          try {
+            await apiPost("/auth/complete-registration", {
+              fullName: metadataFullName.trim(),
+            });
+            p = await fetchProfile();
+          } catch (err) {
+            console.error("Auto-complete registration failed:", err);
+          }
+        }
+      }
+
+      if (!cancelled) {
         setProfile(p);
         setLoading(false);
-      });
-    } else {
-      setProfile(null);
-      setLoading(false);
-    }
-  }, [session]);
+      }
+    };
+
+    void syncProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session, authInitialized]);
 
   const signOut = async () => {
     await supabase.auth.signOut();

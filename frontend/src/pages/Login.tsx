@@ -24,18 +24,32 @@ export default function Login() {
     setLoading(true);
     setError("");
 
-    const { error: authError } = await supabase.auth.signInWithPassword({
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
       email: form.email,
       password: form.password,
     });
 
-    setLoading(false);
-
     if (authError) {
+      setLoading(false);
       setError(authError.message);
       return;
     }
 
+    const emailVerified = Boolean(data.user?.email_confirmed_at);
+    if (!emailVerified) {
+      await supabase.auth.signOut();
+      setLoading(false);
+      setError("Please verify your email before logging in.");
+      return;
+    }
+
+    if (!data.session) {
+      setLoading(false);
+      setError("Unable to create a login session. Please try again.");
+      return;
+    }
+
+    setLoading(false);
     navigate(from, { replace: true });
   };
 

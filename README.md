@@ -24,20 +24,35 @@ A full-stack web application that connects university students with academic and
 - **Responsive Design** — Works across mobile, tablet, and desktop
 - **Dark Mode** — (Coming soon)
 
-
 ## Getting Started
 
 ### Prerequisites
+
 - Node.js 18+
 - npm
+- A Supabase project (URL and keys in `frontend/.env` and `backend/.env` — copy from each folder’s `.env.example`)
 
 ### Frontend
+
 ```bash
 cd frontend
 npm install
 npm run dev
+```
 
-Author
+### Backend
+
+```bash
+cd backend
+npm install
+cp .env.example .env   # then fill in Supabase and optional SMTP settings
+npm run dev
+```
+
+The Vite dev server proxies API and Socket.IO to the backend port (see `frontend/vite.config.ts` and `backend/.env.example`).
+
+Database migrations live under `supabase/migrations/`; apply them in your Supabase project as documented in `supabase/migrations/README.md`.
+
+## Author
+
 Priyanshu Chatterjee — Maynooth University
-
-

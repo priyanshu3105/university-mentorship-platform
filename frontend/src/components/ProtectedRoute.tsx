@@ -1,8 +1,18 @@
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { type Role, useAuth } from "@/contexts/AuthContext";
 
-export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { session, loading } = useAuth();
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  allowedRoles?: Role[];
+  allowWithoutProfile?: boolean;
+}
+
+export default function ProtectedRoute({
+  children,
+  allowedRoles,
+  allowWithoutProfile = false,
+}: ProtectedRouteProps) {
+  const { session, loading, profile } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -15,6 +25,20 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
 
   if (!session) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (!allowWithoutProfile && profile?.profileExists === false) {
+    return <Navigate to="/complete-registration" replace />;
+  }
+
+  if (allowedRoles && allowedRoles.length > 0) {
+    if (!profile?.profileExists) {
+      return <Navigate to="/complete-registration" replace />;
+    }
+
+    if (!allowedRoles.includes(profile.role)) {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   return <>{children}</>;

@@ -50,6 +50,11 @@ export default function Register() {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
+      options: {
+        data: {
+          full_name: form.fullName.trim(),
+        },
+      },
     });
 
     if (signUpError) {
@@ -58,7 +63,9 @@ export default function Register() {
       return;
     }
 
-    if (data.session) {
+    const emailVerified = Boolean(data.user?.email_confirmed_at);
+
+    if (data.session && emailVerified) {
       try {
         await apiPost("/auth/complete-registration", {
           fullName: form.fullName.trim(),
@@ -69,6 +76,9 @@ export default function Register() {
       setLoading(false);
       navigate("/dashboard", { replace: true });
     } else {
+      if (data.session) {
+        await supabase.auth.signOut();
+      }
       setLoading(false);
       setConfirmEmail(true);
     }

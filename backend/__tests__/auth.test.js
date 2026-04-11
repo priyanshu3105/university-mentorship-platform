@@ -16,9 +16,15 @@ const { app } = await import('../app.js');
 const request = (await import('supertest')).default;
 
 // Helper: set up auth mock to return a given user
-function mockAuthUser(id, email) {
+function mockAuthUser(id, email, emailConfirmed = true) {
   mockGetUser.mockResolvedValue({
-    data: { user: { id, email } },
+    data: {
+      user: {
+        id,
+        email,
+        email_confirmed_at: emailConfirmed ? '2026-01-01T00:00:00.000Z' : null,
+      },
+    },
     error: null,
   });
 }
@@ -49,7 +55,6 @@ describe('POST /api/auth/complete-registration', () => {
     const profileChain = mockUpsertChain(profileData);
     const mentorChain = mockUpsertChain(mentorData);
 
-    let callCount = 0;
     mockFrom.mockImplementation((table) => {
       if (table === 'user_profiles') return profileChain;
       if (table === 'mentor_profiles') return mentorChain;
@@ -112,6 +117,18 @@ describe('POST /api/auth/complete-registration', () => {
 
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/fullName/i);
+  });
+
+  it('returns 403 when email is not verified', async () => {
+    mockAuthUser('unverified-id', 'pending@gmail.com', false);
+
+    const res = await request(app)
+      .post('/api/auth/complete-registration')
+      .set('Authorization', 'Bearer fake-token')
+      .send({ fullName: 'Pending User' });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toMatch(/verify your email/i);
   });
 
   it('returns 401 when no token is provided', async () => {
