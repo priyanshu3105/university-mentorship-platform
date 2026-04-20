@@ -262,6 +262,16 @@ export async function getOrCreateDirectConversation(initiatorId, participantId) 
   }
 
   const [userAId, userBId] = [initiatorId, participantId].sort();
+  const profiles = await getUserProfilesByIds([initiatorId, participantId]);
+  const rInit = profiles.get(initiatorId)?.role;
+  const rPart = profiles.get(participantId)?.role;
+  const mentorId = rInit === 'mentor' ? initiatorId : rPart === 'mentor' ? participantId : null;
+  const studentId = rInit === 'student' ? initiatorId : rPart === 'student' ? participantId : null;
+  if (!mentorId || !studentId) {
+    const err = new Error('Direct messages are only between a mentor and a student');
+    err.code = 'VALIDATION';
+    throw err;
+  }
 
   const { data: existing, error: existingError } = await supabaseAdmin
     .from('direct_conversation_pairs')
@@ -272,18 +282,30 @@ export async function getOrCreateDirectConversation(initiatorId, participantId) 
 
   if (existingError) throw existingError;
   if (existing?.conversation_id) {
-    return existing.conversation_id;
-  }
+    // Reopen previously-closed threads when a fresh booked session window is active.
+    const { data: existingConv, error: existingConvError } = await supabaseAdmin
+      .from('conversations')
+      .select('id, closed_at')
+      .eq('id', existing.conversation_id)
+      .maybeSingle();
+    if (existingConvError) throw existingConvError;
 
-  const profiles = await getUserProfilesByIds([initiatorId, participantId]);
-  const rInit = profiles.get(initiatorId)?.role;
-  const rPart = profiles.get(participantId)?.role;
-  const mentorId = rInit === 'mentor' ? initiatorId : rPart === 'mentor' ? participantId : null;
-  const studentId = rInit === 'student' ? initiatorId : rPart === 'student' ? participantId : null;
-  if (!mentorId || !studentId) {
-    const err = new Error('Direct messages are only between a mentor and a student');
-    err.code = 'VALIDATION';
-    throw err;
+    if (existingConv?.closed_at) {
+      const win = await getActiveBookingWindowForPair(mentorId, studentId);
+      if (win) {
+        const { error: reopenError } = await supabaseAdmin
+          .from('conversations')
+          .update({
+            closed_at: null,
+            closed_by_student_id: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existing.conversation_id);
+        if (reopenError) throw reopenError;
+      }
+    }
+
+    return existing.conversation_id;
   }
 
   const win = await getActiveBookingWindowForPair(mentorId, studentId);
