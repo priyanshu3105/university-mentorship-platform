@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -7,6 +7,7 @@ import StarRating from "@/components/StarRating";
 import ExpertiseTag from "@/components/ExpertiseTag";
 import { apiGet, apiPost } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useChatSocket } from "@/contexts/ChatSocketContext";
 import type { AvailabilitySlot, MentorListItem, MentorReview } from "@/types/api";
 
 function formatDateTime(value: string) {
@@ -20,6 +21,7 @@ function formatDateTime(value: string) {
 export default function MentorDetail() {
   const { id } = useParams<{ id: string }>();
   const { profile } = useAuth();
+  const { socket } = useChatSocket();
 
   const [mentor, setMentor] = useState<MentorListItem | null>(null);
   const [slots, setSlots] = useState<AvailabilitySlot[]>([]);
@@ -32,7 +34,7 @@ export default function MentorDetail() {
   const [reviewError, setReviewError] = useState("");
   const [reviewSaving, setReviewSaving] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     setError("");
@@ -50,11 +52,23 @@ export default function MentorDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     void load();
-  }, [id]);
+  }, [load]);
+
+  useEffect(() => {
+    if (!socket || !id) return;
+    const onAvailabilityUpdated = (payload?: { mentorId?: string }) => {
+      if (!payload?.mentorId || payload.mentorId !== id) return;
+      void load();
+    };
+    socket.on("availability:updated", onAvailabilityUpdated);
+    return () => {
+      socket.off("availability:updated", onAvailabilityUpdated);
+    };
+  }, [socket, id, load]);
 
   const canReview = profile?.role === "student";
   const sortedSlots = useMemo(

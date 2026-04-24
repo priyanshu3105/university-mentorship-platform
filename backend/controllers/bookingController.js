@@ -2,6 +2,7 @@ import { supabaseAdmin } from '../config/supabaseClient.js';
 import { sendBookingConfirmationEmails } from '../services/emailService.js';
 import { reopenDirectConversationForPair } from '../services/chatSessionPolicy.js';
 import { getUserEmailsByIds, getUserProfilesByIds, getUserRole } from '../services/userService.js';
+import { getSocketServer } from '../socket/socketServer.js';
 
 function bookingRowToResponse(row, users = new Map()) {
   const mentor = users.get(row.mentor_id);
@@ -27,6 +28,9 @@ function mapBookingRpcError(message) {
   const m = String(message || '');
   if (m.includes('SLOT_NOT_FOUND')) return { status: 404, error: 'Slot not found' };
   if (m.includes('SLOT_ALREADY_BOOKED')) return { status: 409, error: 'Slot already booked' };
+  if (m.includes('STUDENT_HAS_OVERLAPPING_BOOKING')) {
+    return { status: 409, error: 'You already have another confirmed booking at this time' };
+  }
   if (m.includes('SLOT_IN_PAST')) return { status: 400, error: 'Cannot book a past slot' };
   if (m.includes('SELF_BOOKING_NOT_ALLOWED')) return { status: 400, error: 'Cannot book your own slot' };
   if (m.includes('MENTOR_NOT_APPROVED')) return { status: 403, error: 'Mentor is not approved for booking' };
@@ -99,6 +103,20 @@ export async function createBooking(req, res) {
       await reopenDirectConversationForPair(withSlot.mentor_id, withSlot.student_id);
     } catch (reopenErr) {
       console.error('createBooking reopen conversation failed', reopenErr);
+    }
+
+    const io = getSocketServer();
+    if (io) {
+      const payload = {
+        bookingId: response.id,
+        slotId: response.slotId,
+        mentorId: response.mentorId,
+        studentId: response.studentId,
+      };
+      io.to(`user:${response.mentorId}`).emit('booking:updated', payload);
+      io.to(`user:${response.studentId}`).emit('booking:updated', payload);
+      io.to(`user:${response.mentorId}`).emit('availability:updated', payload);
+      io.to(`user:${response.studentId}`).emit('availability:updated', payload);
     }
 
     return res.status(201).json(response);

@@ -87,6 +87,20 @@ BEGIN
     RAISE EXCEPTION 'MENTOR_NOT_APPROVED';
   END IF;
 
+  -- Prevent a student from booking two sessions that overlap in time,
+  -- even when the second booking is with a different mentor.
+  IF EXISTS (
+    SELECT 1
+    FROM public.bookings b
+    JOIN public.availability_slots s ON s.id = b.slot_id
+    WHERE b.student_id = p_student_id
+      AND b.status = 'confirmed'
+      AND tstzrange(s.start_at, s.end_at, '[)') &&
+          tstzrange(v_slot.start_at, v_slot.end_at, '[)')
+  ) THEN
+    RAISE EXCEPTION 'STUDENT_HAS_OVERLAPPING_BOOKING';
+  END IF;
+
   INSERT INTO public.bookings (slot_id, mentor_id, student_id, status)
   VALUES (p_slot_id, v_slot.mentor_id, p_student_id, 'confirmed')
   RETURNING * INTO v_booking;

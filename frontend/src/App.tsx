@@ -10,6 +10,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import Landing from "./pages/Landing";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
+import ResetPassword from "./pages/ResetPassword";
 import CompleteRegistration from "./pages/CompleteRegistration";
 import Dashboard from "./pages/Dashboard";
 import MentorsList from "./pages/MentorsList";
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="/" element={<Landing />} />
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route
                 path="/complete-registration"
                 element={

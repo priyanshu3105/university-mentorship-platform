@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
+import { useChatSocket } from "@/contexts/ChatSocketContext";
 import { apiGet } from "@/lib/api";
 import { CalendarDays, MessageSquare, Clock, Star } from "lucide-react";
 import type { AvailabilitySlot, Booking } from "@/types/api";
@@ -20,6 +21,7 @@ function formatTimeRange(startAt: string | null, endAt: string | null) {
 
 export default function Dashboard() {
   const { user, profile } = useAuth();
+  const { socket } = useChatSocket();
   const userEmail = profile?.email || user?.email || null;
   const role = profile?.role ?? "student";
   const firstName = profile?.fullName?.split(" ")[0] || userEmail?.split("@")[0] || "there";
@@ -31,49 +33,56 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const tasks: Promise<unknown>[] = [
-          apiGet("/bookings/mine"),
-          apiGet("/chat/conversations"),
-        ];
-        if (role === "mentor") {
-          tasks.push(apiGet("/availability/slots"));
-          tasks.push(apiGet("/mentors/me"));
-        }
-
-        const results = await Promise.all(tasks);
-        if (cancelled) return;
-
-        const bookingsRes = results[0] as { items: Booking[] };
-        const conversationsRes = results[1] as { items: unknown[] };
-        setBookings(bookingsRes.items || []);
-        setActiveConversations((conversationsRes.items || []).length);
-
-        if (role === "mentor") {
-          const slotsRes = results[2] as { items: AvailabilitySlot[] };
-          const mentorRes = results[3] as { averageRating: number };
-          setSlots(slotsRes.items || []);
-          setAverageRating(typeof mentorRes.averageRating === "number" ? mentorRes.averageRating : null);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load dashboard.");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const tasks: Promise<unknown>[] = [
+        apiGet("/bookings/mine"),
+        apiGet("/chat/conversations"),
+      ];
+      if (role === "mentor") {
+        tasks.push(apiGet("/availability/slots"));
+        tasks.push(apiGet("/mentors/me"));
       }
-    };
-    void load();
 
-    return () => {
-      cancelled = true;
-    };
+      const results = await Promise.all(tasks);
+      const bookingsRes = results[0] as { items: Booking[] };
+      const conversationsRes = results[1] as { items: unknown[] };
+      setBookings(bookingsRes.items || []);
+      setActiveConversations((conversationsRes.items || []).length);
+
+      if (role === "mentor") {
+        const slotsRes = results[2] as { items: AvailabilitySlot[] };
+        const mentorRes = results[3] as { averageRating: number };
+        setSlots(slotsRes.items || []);
+        setAverageRating(typeof mentorRes.averageRating === "number" ? mentorRes.averageRating : null);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load dashboard.");
+    } finally {
+      setLoading(false);
+    }
   }, [role]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  useEffect(() => {
+    if (!socket) return;
+    const refetch = () => {
+      void load();
+    };
+    socket.on("booking:updated", refetch);
+    socket.on("availability:updated", refetch);
+    socket.on("conversation:updated", refetch);
+    return () => {
+      socket.off("booking:updated", refetch);
+      socket.off("availability:updated", refetch);
+      socket.off("conversation:updated", refetch);
+    };
+  }, [socket, load]);
 
   const upcomingBookings = useMemo(
     () =>

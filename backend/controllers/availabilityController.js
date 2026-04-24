@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '../config/supabaseClient.js';
 import { getUserRole } from '../services/userService.js';
 import { parseIsoDateTime } from '../utils/validation.js';
+import { getSocketServer } from '../socket/socketServer.js';
 
 function validateSlotInput(raw) {
   const startAt = parseIsoDateTime(raw?.startAt);
@@ -29,6 +30,12 @@ function slotToResponse(slot) {
     createdAt: slot.created_at,
     updatedAt: slot.updated_at,
   };
+}
+
+function emitAvailabilityUpdated(payload) {
+  const io = getSocketServer();
+  if (!io) return;
+  io.to(`user:${payload.mentorId}`).emit('availability:updated', payload);
 }
 
 export async function listAvailabilitySlots(req, res) {
@@ -107,7 +114,16 @@ export async function createAvailabilitySlots(req, res) {
       return res.status(500).json({ error: 'Failed to create availability slots' });
     }
 
-    return res.status(201).json({ items: (data || []).map(slotToResponse) });
+    const items = (data || []).map(slotToResponse);
+    for (const item of items) {
+      emitAvailabilityUpdated({
+        mentorId: item.mentorId,
+        slotId: item.id,
+        action: 'created',
+      });
+    }
+
+    return res.status(201).json({ items });
   } catch (err) {
     console.error('createAvailabilitySlots exception', err);
     return res.status(500).json({ error: 'Internal server error' });
@@ -143,7 +159,14 @@ export async function updateAvailabilitySlot(req, res) {
       return res.status(404).json({ error: 'Slot not found' });
     }
 
-    return res.json(slotToResponse(data));
+    const item = slotToResponse(data);
+    emitAvailabilityUpdated({
+      mentorId: item.mentorId,
+      slotId: item.id,
+      action: 'updated',
+    });
+
+    return res.json(item);
   } catch (err) {
     console.error('updateAvailabilitySlot exception', err);
     return res.status(500).json({ error: 'Internal server error' });
@@ -156,7 +179,7 @@ export async function deleteAvailabilitySlot(req, res) {
 
     const { data: existing, error: readError } = await supabaseAdmin
       .from('availability_slots')
-      .select('id, is_booked')
+      .select('id, mentor_id, is_booked')
       .eq('id', slotId)
       .eq('mentor_id', req.user.id)
       .maybeSingle();
@@ -184,6 +207,12 @@ export async function deleteAvailabilitySlot(req, res) {
       console.error('deleteAvailabilitySlot delete error', error);
       return res.status(500).json({ error: 'Failed to delete slot' });
     }
+
+    emitAvailabilityUpdated({
+      mentorId: existing.mentor_id,
+      slotId,
+      action: 'deleted',
+    });
 
     return res.status(204).send();
   } catch (err) {

@@ -5,6 +5,8 @@ import { supabase } from "@/lib/supabase";
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -53,6 +55,30 @@ export default function Login() {
     navigate(from, { replace: true });
   };
 
+  const handleForgotPassword = async () => {
+    if (!form.email.trim()) {
+      setInfo("");
+      setError("Enter your email first, then click Forgot password.");
+      return;
+    }
+
+    setForgotLoading(true);
+    setError("");
+    setInfo("");
+
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(form.email.trim(), {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    setForgotLoading(false);
+    if (resetError) {
+      setError(resetError.message);
+      return;
+    }
+
+    setInfo("Password reset link sent. Check your email inbox.");
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
       <div className="max-w-md w-full border border-border rounded-lg p-8">
@@ -77,7 +103,17 @@ export default function Login() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">Password</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-sm font-medium text-foreground">Password</label>
+              <button
+                type="button"
+                onClick={() => void handleForgotPassword()}
+                disabled={forgotLoading || loading}
+                className="text-xs text-primary font-medium hover:underline disabled:opacity-50 disabled:no-underline"
+              >
+                {forgotLoading ? "Sending..." : "Forgot password?"}
+              </button>
+            </div>
             <input
               type="password"
               className={field}
@@ -90,6 +126,12 @@ export default function Login() {
           {error && (
             <div className="rounded-md bg-destructive/5 border border-destructive/20 px-3 py-2">
               <p className="text-xs text-destructive">{error}</p>
+            </div>
+          )}
+
+          {info && (
+            <div className="rounded-md bg-green-500/5 border border-green-500/20 px-3 py-2">
+              <p className="text-xs text-green-700 dark:text-green-300">{info}</p>
             </div>
           )}
 

@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MessageCircle, Plus, Trash2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
+import { useChatSocket } from "@/contexts/ChatSocketContext";
 import { apiDelete, apiGet, apiPost } from "@/lib/api";
 import { toast } from "sonner";
 import type { AvailabilitySlot, Booking } from "@/types/api";
@@ -39,6 +40,7 @@ function isInScheduledSessionWindow(booking: Booking): boolean {
 
 export default function Bookings() {
   const { profile } = useAuth();
+  const { socket } = useChatSocket();
   const navigate = useNavigate();
   const role = profile?.role || "student";
   const isMentor = role === "mentor";
@@ -60,7 +62,7 @@ export default function Bookings() {
     return () => window.clearInterval(id);
   }, []);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
@@ -76,11 +78,24 @@ export default function Bookings() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isMentor]);
 
   useEffect(() => {
     void load();
-  }, [isMentor]);
+  }, [load]);
+
+  useEffect(() => {
+    if (!socket) return;
+    const refetch = () => {
+      void load();
+    };
+    socket.on("booking:updated", refetch);
+    socket.on("availability:updated", refetch);
+    return () => {
+      socket.off("booking:updated", refetch);
+      socket.off("availability:updated", refetch);
+    };
+  }, [socket, load]);
 
   const sortedSlots = useMemo(
     () => [...slots].sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime()),
